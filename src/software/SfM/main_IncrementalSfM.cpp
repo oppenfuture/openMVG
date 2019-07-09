@@ -93,12 +93,11 @@ void SortAndClean(SfM_Data &sfm_data_) {
       std::pair<IndexT, Observation> ob_new(view_map[observation.first], observation.second);
       obs_new.insert(ob_new);
     }
-    sfm_data.structure[landmark.first].obs = obs_new;
+    sfm_data.structure[landmark.first].obs = std::move(obs_new);
     obs_new.clear();
   }
 
-
-  sfm_data_ = sfm_data;
+  std::swap(sfm_data_, sfm_data);
 }
 
 /// From 2 given image file-names, find the two corresponding index in the View list
