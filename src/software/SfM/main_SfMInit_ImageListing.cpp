@@ -67,6 +67,29 @@ bool checkIntrinsicStringValidity(const std::string & Kmatrixs, std::vector<doub
   return true;
 }
 
+bool checkFocalPixelsStringValidity(const std::string &focal_pixel, std::vector<double> &focals) {
+  focals.clear();
+  std::vector<std::string> vec_str;
+  std::string focal_pixels = focal_pixel + ";";
+  stl::split(focal_pixels, ';', vec_str);
+  if (vec_str.size() == 0) {
+    std::cerr << "\n Missing ';' character" << std::endl;
+    return false;
+  }
+  for (size_t i = 0; i < vec_str.size(); ++i) {
+    double readvalue = 0.0;
+    std::stringstream ss;
+    ss.str(vec_str[i]);
+    if (! (ss >> readvalue)) {
+      std::cerr << "\n Used an invalid not a number character" << std::endl;
+      return false;
+    }
+    focals.push_back(readvalue);
+  }
+
+  return true;
+}
+
 bool checkImageDirsStringValidity(const std::string& sImageDirs, std::vector<std::string> &ImageDirs, std::string sCombinationDirectory) {
   ImageDirs.clear();
   std::vector<std::string> vec_str;
@@ -78,15 +101,14 @@ bool checkImageDirsStringValidity(const std::string& sImageDirs, std::vector<std
   // Check that all ImageDir all exist
   for (size_t i = 0; i < vec_str.size(); ++i) {
     if (!stlplus::folder_exists(vec_str[i])) {
-      std::cerr << "\n" << vec_str[i] << "does not exist." << std::endl;
+      std::cerr << "\n" << vec_str[i] << " does not exist." << std::endl;
       return false;
     }
     ImageDirs.push_back(vec_str[i]);
   }
 
   if (ImageDirs.size() != 1 && sCombinationDirectory.empty()) {
-    std::cerr << "Must offer sCombinationDirectory" << std::endl;
-    return false;
+    sCombinationDirectory = ImageDirs[0];
   }
   return true;
 }
@@ -106,7 +128,7 @@ std::vector<std::pair<std::string, size_t>> aggregateImageDirs(std::vector<std::
         continue;
       SortedImages.push_back(std::make_pair(*iter_image, 0));
     }
-  } else {
+  } else if (ImageDirs[0] != sInputFolder){
     for (size_t i=0; i<ImageDirs.size(); ++i) {
       std::vector<std::string> vec_image = stlplus::folder_files(ImageDirs[i]);
       for ( std::vector<std::string>::const_iterator iter_image = vec_image.begin(); iter_image != vec_image.end(); ++iter_image) {
@@ -114,18 +136,39 @@ std::vector<std::pair<std::string, size_t>> aggregateImageDirs(std::vector<std::
           continue;
         std::string ImageFilenameSrc = stlplus::create_filespec(ImageDirs[i], *iter_image);
         std::string ImageFilenameDest = stlplus::create_filespec(sInputFolder, *iter_image);
-        std::experimental::filesystem::create_symlink(ImageFilenameSrc, ImageFilenameDest);
-        SortedImages.push_back(std::make_pair(*iter_image, i));
+        if (!std::experimental::filesystem::exists(ImageFilenameDest)) {
+          std::experimental::filesystem::create_symlink(ImageFilenameSrc, ImageFilenameDest);
+          SortedImages.push_back(std::make_pair(*iter_image, i));
+        }
       }
     }
+    std::sort(SortedImages.begin(), SortedImages.end(), image_filename_less);
+  } else {
+      std::vector<std::string> vec_image = stlplus::folder_files(ImageDirs[0]);
+      for ( std::vector<std::string>::const_iterator iter_image = vec_image.begin(); iter_image != vec_image.end(); ++iter_image) {
+        if (openMVG::image::GetFormat((*iter_image).c_str()) == openMVG::image::Unknown)
+          continue;
+        if (!std::experimental::filesystem::is_symlink(*iter_image)) {
+          SortedImages.push_back(std::make_pair(*iter_image, 0));
+        }
+      }
+      for (size_t i=1; i<ImageDirs.size(); ++i) {
+        std::vector<std::string> vec_image = stlplus::folder_files(ImageDirs[i]);
+        for ( std::vector<std::string>::const_iterator iter_image = vec_image.begin(); iter_image != vec_image.end(); ++iter_image) {
+          if (openMVG::image::GetFormat((*iter_image).c_str()) == openMVG::image::Unknown)
+            continue;
+          std::string ImageFilenameSrc = stlplus::create_filespec(ImageDirs[i], *iter_image);
+          std::string ImageFilenameDest = stlplus::create_filespec(sInputFolder, *iter_image);
+          if (!std::experimental::filesystem::exists(ImageFilenameDest)) {
+            std::experimental::filesystem::create_symlink(ImageFilenameSrc, ImageFilenameDest);
+            SortedImages.push_back(std::make_pair(*iter_image, i));
+          }
+        }
+      }
     std::sort(SortedImages.begin(), SortedImages.end(), image_filename_less);
   }
 
   return SortedImages;
-}
-
-void SortInputImages(const std::vector<std::string> &ImageDirs) {
-
 }
 
 std::pair<bool, Vec3> checkGPS
@@ -218,9 +261,9 @@ int main(int argc, char **argv)
 
   int i_GPS_XYZ_method = 0;
 
-  double focal_pixels = -1.0;
+  std::string focal_pixels = "";
 
-  cmd.add( make_option('a', sCombinationDirectory, "--combinationDirectory"));
+  cmd.add( make_option('a', sCombinationDirectory, "combinationDirectory"));
   cmd.add( make_option('i', sImageDirs, "imageDirectories") );
   cmd.add( make_option('d', sfileDatabase, "sensorWidthDatabase") );
   cmd.add( make_option('o', sOutputDir, "outputDirectory") );
@@ -288,7 +331,7 @@ int main(int argc, char **argv)
     return EXIT_FAILURE;
   }
 
-  if (ImageDirs.size() != 1) {
+  if (ImageDirs.size() != 1 && sCombinationDirectory.size() > 0) {
     if ( !stlplus::folder_exists( sCombinationDirectory ) ) {
       if ( !stlplus::folder_create( sCombinationDirectory ) ) {
         std::cerr << "\nCannot create " << sCombinationDirectory << " directory" << std::endl;
@@ -324,6 +367,11 @@ int main(int argc, char **argv)
     }
   }
 
+  if (focal_pixels.size() > 0 && !checkFocalPixelsStringValidity(focal_pixels, focals)) {
+    std::cerr << "\nInvalid f focals input" << std::endl;
+    return EXIT_FAILURE;
+  }
+
   if (sKmatrixs.size() > 0 &&
     !checkIntrinsicStringValidity(sKmatrixs, focals, ppxs, ppys) )
   {
@@ -331,7 +379,7 @@ int main(int argc, char **argv)
     return EXIT_FAILURE;
   }
 
-  if (sKmatrixs.size() > 0 && focal_pixels != -1.0)
+  if (sKmatrixs.size() > 0 && focal_pixels.size() > 0)
   {
     std::cerr << "\nCannot combine -f and -k options" << std::endl;
     return EXIT_FAILURE;
@@ -412,8 +460,8 @@ int main(int argc, char **argv)
       }
     }
     else // User provided focal length value
-      if (focal_pixels != -1 )
-        focal = focal_pixels;
+      if (focal_pixels.size() > 0)
+        focal = focals[SortedImages[image_number].second];
 
     // If not manually provided or wrongly provided
     if (focal == -1)
