@@ -30,6 +30,43 @@ using namespace openMVG;
 using namespace openMVG::cameras;
 using namespace openMVG::sfm;
 
+/// Check that IntrinsicParameterTypeString is a string like "string0;c1;string1"
+cameras::Intrinsic_Parameter_Type CheckIntrinsicParameterTypeStringValidity(
+  const std::string& intrinsicParameterTypeString,
+  std::map<int, cameras::Intrinsic_Parameter_Type> &opt_per_model)
+{
+  opt_per_model.clear();
+
+  std::vector<std::string> vec_str;
+  stl::split(intrinsicParameterTypeString, ';', vec_str);
+  if (vec_str.size() == 0) {
+    throw std::runtime_error("\n Missing ';' character");
+  }
+
+  cameras::Intrinsic_Parameter_Type intrinsic_refinement_options =
+    StringTo_Intrinsic_Parameter_Type(vec_str[0]);
+  if (intrinsic_refinement_options == static_cast<cameras::Intrinsic_Parameter_Type>(0)) {
+    throw std::runtime_error("\n Invalid input for Bundle Adjusment Intrinsic parameter refinement option");
+  }
+
+  for (size_t i = 1; i < vec_str.size(); i += 2) {
+    int cameraModel;
+    std::stringstream ss;
+    ss.str(vec_str[i]);
+    if (!(ss >> cameraModel)) {
+      throw std::runtime_error("\n Invalid camera type");
+    }
+
+    auto intrinsic_refinement_option = StringTo_Intrinsic_Parameter_Type(vec_str[i+1]);
+    if (intrinsic_refinement_option == static_cast<cameras::Intrinsic_Parameter_Type>(0)) {
+      throw std::runtime_error("\n Invalid input for Bundle Adjusment Intrinsic parameter refinement option");
+    }
+
+    opt_per_model[cameraModel] = intrinsic_refinement_option;
+  }
+  return intrinsic_refinement_options;
+}
+
 inline bool view_less(const std::pair<std::string, IndexT> &p1, const std::pair<std::string, IndexT> &p2) {
   return (p1.first.compare(p2.first) < 0);
 }
@@ -185,8 +222,9 @@ int main(int argc, char **argv)
       << "\t 4: Pinhole radial 3 + tangential 2\n"
       << "\t 5: Pinhole fisheye\n"
       << "\t 6: Pinhole radial 1 pba\n"
-      << "\t 11: Pinhole brown 2 with different fx, fy"
-    << "[-f|--refineIntrinsics] Intrinsic parameters refinement option\n"
+      << "\t 11: Pinhole brown 2 with different fx, fy\n"
+    << "[-f|--refineIntrinsics] Intrinsic parameters refinement option, support multi value\n"
+      << "for each camera model: ADJUST_ALL(defalut option);1;NONE(for c1 camera model)...\"\n"
       << "\t ADJUST_ALL -> refine all existing parameters (default) \n"
       << "\t NONE -> intrinsic parameters are held as constant\n"
       << "\t ADJUST_FOCAL_LENGTH -> refine only the focal length\n"
@@ -217,13 +255,10 @@ int main(int argc, char **argv)
     return EXIT_FAILURE;
   }
 
+  std::map<int, cameras::Intrinsic_Parameter_Type> intrinsic_refinement_options_per_model;
   const cameras::Intrinsic_Parameter_Type intrinsic_refinement_options =
-    cameras::StringTo_Intrinsic_Parameter_Type(sIntrinsic_refinement_options);
-  if (intrinsic_refinement_options == static_cast<cameras::Intrinsic_Parameter_Type>(0) )
-  {
-    std::cerr << "Invalid input for Bundle Adjusment Intrinsic parameter refinement option" << std::endl;
-    return EXIT_FAILURE;
-  }
+    CheckIntrinsicParameterTypeStringValidity(
+    sIntrinsic_refinement_options, intrinsic_refinement_options_per_model);
 
   // Load input SfM_Data scene
   SfM_Data sfm_data;
@@ -233,9 +268,17 @@ int main(int argc, char **argv)
     return EXIT_FAILURE;
   }
 
-  if (b_use_pba && ((intrinsic_refinement_options & cameras::Intrinsic_Parameter_Type::ADJUST_PRINCIPAL_POINT)
-                   != static_cast<cameras::Intrinsic_Parameter_Type>(0))){
-    std::cout<< "Warning: PBA can not adjust principle point!" <<std::endl;
+  if (b_use_pba &&
+    ((intrinsic_refinement_options & cameras::Intrinsic_Parameter_Type::ADJUST_PRINCIPAL_POINT)
+    != static_cast<cameras::Intrinsic_Parameter_Type>(0))) {
+      std::cout<< "Warning: PBA can not adjust principle point!" << std::endl;
+    }
+  for (const auto &option : intrinsic_refinement_options_per_model) {
+    if (b_use_pba && ((option.second & cameras::Intrinsic_Parameter_Type::ADJUST_PRINCIPAL_POINT)
+                     != static_cast<cameras::Intrinsic_Parameter_Type>(0))) {
+      std::cout<< "Warning: PBA can not adjust principle point!" << std::endl;
+      break;
+    }
   }
 
   // Init the regions_type from the image describer file (used for image regions extraction)
@@ -299,7 +342,8 @@ int main(int argc, char **argv)
   sfmEngine.SetMatchesProvider(matches_provider.get());
 
   // Configure reconstruction parameters
-  sfmEngine.Set_Intrinsics_Refinement_Type(intrinsic_refinement_options);
+  sfmEngine.Set_Intrinsics_Refinement_Type(
+    intrinsic_refinement_options, intrinsic_refinement_options_per_model);
   sfmEngine.SetUnknownCameraType(EINTRINSIC(i_User_camera_model));
   b_use_motion_priors = cmd.used('P');
   sfmEngine.Set_Use_Motion_Prior(b_use_motion_priors);

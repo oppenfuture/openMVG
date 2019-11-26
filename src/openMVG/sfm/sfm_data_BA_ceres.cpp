@@ -303,7 +303,14 @@ bool Bundle_Adjustment_Ceres::Adjust
       {
         double * parameter_block = &map_intrinsics.at(indexCam)[0];
         problem.AddParameterBlock(parameter_block, map_intrinsics.at(indexCam).size());
-        if (options.intrinsics_opt == Intrinsic_Parameter_Type::NONE)
+
+        cameras::Intrinsic_Parameter_Type camera_intrinsic_opt = options.intrinsics_opt;
+        if (options.intrinsics_opt_per_model.count(intrinsic_it.second->getType()) != 0) {
+          camera_intrinsic_opt = options.intrinsics_opt_per_model.at(intrinsic_it.second->getType());
+        }
+
+        if (camera_intrinsic_opt == Intrinsic_Parameter_Type::NONE ||
+          isPinhole_2(intrinsic_it.second->getType()))
         {
           // set the whole parameter block as constant for best performance
           problem.SetParameterBlockConstant(parameter_block);
@@ -311,7 +318,7 @@ bool Bundle_Adjustment_Ceres::Adjust
         else
         {
           const std::vector<int> vec_constant_intrinsic =
-            intrinsic_it.second->subsetParameterization(options.intrinsics_opt);
+            intrinsic_it.second->subsetParameterization(camera_intrinsic_opt);
           if (!vec_constant_intrinsic.empty())
           {
             ceres::SubsetParameterization *subset_parameterization =
@@ -523,7 +530,17 @@ bool Bundle_Adjustment_Ceres::Adjust
     }
 
     // Update camera intrinsics with refined data
-    if (options.intrinsics_opt != Intrinsic_Parameter_Type::NONE)
+    bool refine_intrinsic = false;
+    if (options.intrinsics_opt != Intrinsic_Parameter_Type::NONE) {
+      refine_intrinsic = true;
+    }
+    for (auto per_model : options.intrinsics_opt_per_model) {
+      if (per_model.second != Intrinsic_Parameter_Type::NONE) {
+        refine_intrinsic = true;
+        break;
+      }
+    }
+    if (refine_intrinsic)
     {
       for (auto & intrinsic_it : sfm_data.intrinsics)
       {
