@@ -224,7 +224,7 @@ int main(int argc, char **argv)
       << "\t 6: Pinhole radial 1 pba\n"
       << "\t 11: Pinhole brown 2 with different fx, fy\n"
     << "[-f|--refineIntrinsics] Intrinsic parameters refinement option, support multi value\n"
-      << "for each camera model: ADJUST_ALL(defalut option);1;NONE(for c1 camera model)...\"\n"
+      << "for each camera model: ADJUST_ALL(default option);1;NONE(for c1 camera model)...\"\n"
       << "\t ADJUST_ALL -> refine all existing parameters (default) \n"
       << "\t NONE -> intrinsic parameters are held as constant\n"
       << "\t ADJUST_FOCAL_LENGTH -> refine only the focal length\n"
