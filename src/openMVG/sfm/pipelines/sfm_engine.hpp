@@ -10,6 +10,7 @@
 #define OPENMVG_SFM_SFM_ENGINE_HPP
 
 #include <string>
+#include <unordered_map>
 
 #include "openMVG/cameras/Camera_Common.hpp"
 #include "openMVG/sfm/sfm_data.hpp"
@@ -46,10 +47,12 @@ public:
 
   void Set_Intrinsics_Refinement_Type
   (
-    cameras::Intrinsic_Parameter_Type rhs
+    cameras::Intrinsic_Parameter_Type rhs,
+    const std::unordered_map<int, cameras::Intrinsic_Parameter_Type> &per_model={}
   )
   {
     intrinsic_refinement_options_ = rhs;
+    intrinsic_refinement_options_per_model_ = per_model;
   }
 
   void Set_Use_Motion_Prior
@@ -76,6 +79,7 @@ protected:
   //-- Reconstruction parameters
   //-----
   cameras::Intrinsic_Parameter_Type intrinsic_refinement_options_;
+  std::unordered_map<int, cameras::Intrinsic_Parameter_Type> intrinsic_refinement_options_per_model_;
   bool b_use_motion_prior_;
 };
 
