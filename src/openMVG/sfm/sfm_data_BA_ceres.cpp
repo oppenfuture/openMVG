@@ -309,8 +309,7 @@ bool Bundle_Adjustment_Ceres::Adjust
           camera_intrinsic_opt = options.intrinsics_opt_per_model.at(intrinsic_it.second->getType());
         }
 
-        if (camera_intrinsic_opt == Intrinsic_Parameter_Type::NONE ||
-          isPinhole_2(intrinsic_it.second->getType()))
+        if (camera_intrinsic_opt == Intrinsic_Parameter_Type::NONE)
         {
           // set the whole parameter block as constant for best performance
           problem.SetParameterBlockConstant(parameter_block);
