@@ -24,7 +24,7 @@ target_link_libraries(
     openMVG_geometry
     openMVG_multiview
     stlplus
-    ${CERES_LIBRARIES}
+    ceres-solver::ceres-solver
     openMVG_lInftyComputerVision
     openMVG_system
     openMVG_matching
@@ -33,8 +33,7 @@ target_link_libraries(
 target_include_directories(
   openMVG_sfm
   PRIVATE
-  pbaCPU
-  ${CERES_INCLUDE_DIRS})
+  pbaCPU)
 set_target_properties(openMVG_sfm PROPERTIES SOVERSION ${OPENMVG_VERSION_MAJOR} VERSION "${OPENMVG_VERSION_MAJOR}.${OPENMVG_VERSION_MINOR}")
 
 install(TARGETS openMVG_sfm DESTINATION lib EXPORT openMVG-targets)
@@ -49,5 +48,5 @@ UNIT_TEST(openMVG sfm_data_filters
   "openMVG_features;openMVG_sfm")
 UNIT_TEST(openMVG sfm_data_graph_utils
   "openMVG_features;openMVG_sfm")
-  
+
 add_subdirectory(pipelines)

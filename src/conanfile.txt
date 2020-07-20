@@ -1,0 +1,7 @@
+[requires]
+eigen/3.2.10@oppen/testing
+ceres-solver/1.14.0@oppen/testing
+
+[generators]
+cmake_paths
+cmake_find_package

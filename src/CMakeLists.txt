@@ -5,9 +5,19 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-CMAKE_MINIMUM_REQUIRED(VERSION 3.1)
+cmake_minimum_required(VERSION 3.16)
 
-project(openMVG C CXX)
+project(openMVG VERSION 1.0 LANGUAGES C CXX)
+
+if (EXISTS ${CMAKE_BINARY_DIR}/conan_paths.cmake)
+  include(${CMAKE_BINARY_DIR}/conan_paths.cmake)
+endif()
+
+if (NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
+endif()
+
+set(CMAKE_CXX_STANDARD 11)
 
 # guard against in-source builds
 if (${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
@@ -51,11 +61,6 @@ foreach(v MAJOR MINOR REVISION)
   endif()
 endforeach()
 set(OPENMVG_VERSION ${OPENMVG_VERSION_MAJOR}.${OPENMVG_VERSION_MINOR}.${OPENMVG_VERSION_REVISION})
-
-# Default build is in Release mode
-if (NOT CMAKE_BUILD_TYPE AND NOT MSVC)
-  set(CMAKE_BUILD_TYPE "Release")
-endif (NOT CMAKE_BUILD_TYPE AND NOT MSVC)
 
 # Set build path
 set(EXECUTABLE_OUTPUT_PATH "${PROJECT_BINARY_DIR}/${CMAKE_SYSTEM_NAME}-${CMAKE_SYSTEM_PROCESSOR}-${CMAKE_BUILD_TYPE}")
@@ -118,20 +123,6 @@ if (UNIX AND NOT OpenMVG_BUILD_COVERAGE)
   set(CMAKE_C_FLAGS_RELEASE "-O3")
   set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 endif ()
-
-# ==============================================================================
-# Check C++11 support
-# ==============================================================================
-include(CXX11)
-check_for_cxx11_compiler(CXX11_COMPILER)
-# If a C++11 compiler is available, then set the appropriate flags
-if (CXX11_COMPILER)
-  set(CMAKE_CXX_STANDARD 11)
-  set(CMAKE_CXX_STANDARD_REQUIRED ON)
-  set(CMAKE_CXX_EXTENSIONS OFF)
-else (CXX11_COMPILER)
-  message(FATAL_ERROR "A CXX11 compiler is required.")
-endif (CXX11_COMPILER)
 
 # ==============================================================================
 # OpenMP detection
@@ -248,35 +239,16 @@ endif()
 # ==============================================================================
 # Eigen
 # ==============================================================================
-# - internal by default,
-# - external if EIGEN_INCLUDE_DIR_HINTS is defined
+# - external install Eigen dependency by conan
 # ==============================================================================
-if (NOT DEFINED EIGEN_INCLUDE_DIR_HINTS)
-  set(EIGEN_INCLUDE_DIR_HINTS ${CMAKE_CURRENT_SOURCE_DIR}/third_party/eigen)
-  set(OpenMVG_USE_INTERNAL_EIGEN ON)
-endif()
-find_package(Eigen QUIET)
-if (EIGEN_FOUND)
-  include_directories(${EIGEN_INCLUDE_DIRS})
-endif (EIGEN_FOUND)
+find_package(Eigen3 REQUIRED)
 
 # ==============================================================================
 # Ceres
 # ==============================================================================
-# - internal by default (ceres-solver+cxsparse+miniglog),
-# - external if CERES_DIR_HINTS and find_package return a valid Ceres setup
+# - external install Ceres dependency by conan
 # ==============================================================================
-find_package(Ceres QUIET HINTS ${CERES_DIR_HINTS})
-if (NOT Ceres_FOUND)
-  set(OpenMVG_USE_INTERNAL_CERES ON)
-  set(CERES_INCLUDE_DIRS
-    ${CMAKE_CURRENT_SOURCE_DIR}/third_party/ceres-solver/include
-    ${CMAKE_CURRENT_SOURCE_DIR}/third_party/ceres-solver/internal/ceres/miniglog
-    ${PROJECT_BINARY_DIR}/third_party/ceres-solver/config)
-    FILE(READ "${CMAKE_CURRENT_SOURCE_DIR}/third_party/ceres-solver/VERSION" CERES_CONFIG)
-    STRING(REGEX REPLACE "version ([0-9.]+).*" "\\1" CERES_VERSION ${CERES_CONFIG})
-  set(CERES_LIBRARIES ceres cxsparse)
-endif()
+find_package(ceres-solver REQUIRED)
 
 # ==============================================================================
 # Flann
@@ -399,7 +371,7 @@ set(OpenMVG_INCLUDE_DIRS
   ${CMAKE_CURRENT_SOURCE_DIR}
   ${CMAKE_CURRENT_SOURCE_DIR}/dependencies
   ${CEREAL_INCLUDE_DIRS}
-  ${EIGEN_INCLUDE_DIRS}
+  ${Eigen3_INCLUDE_DIRS}
   ${FLANN_INCLUDE_DIRS}
   CACHE PATH "include directories for openMVG and its dependencies"
 )
@@ -619,20 +591,6 @@ string(REGEX REPLACE
   OpenMVG_INCLUDE_DIRS
   "${OpenMVG_INCLUDE_DIRS}"
 )
-if (OpenMVG_USE_INTERNAL_CERES)
-  string(REGEX REPLACE
-    "ceres-solver"
-    "ceres"
-    OpenMVG_INCLUDE_DIRS
-    "${OpenMVG_INCLUDE_DIRS}"
-  )
-  string(REGEX REPLACE
-    "internal/ceres/"
-    ""
-    OpenMVG_INCLUDE_DIRS
-    "${OpenMVG_INCLUDE_DIRS}"
-  )
-endif (OpenMVG_USE_INTERNAL_CERES)
 
 # Build OpenMVG_CFLAGS variable for export
 set(OpenMVG_CFLAGS "")

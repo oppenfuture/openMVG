@@ -28,11 +28,11 @@
 #include "third_party/pba/src/pba/pba.h"
 
 #include <ceres/types.h>
+#include <ceres/rotation.h>
 #include <functional>
 #include <iostream>
 #include <map>
 #include <utility>
-#include <third_party/ceres-solver/include/ceres/rotation.h>
 #include <third_party/pba/src/pba/util.h>
 #include <third_party/pba/src/pba/SparseBundleCPU.h>
 #include <openMVG/sfm/sfm_data_PBA.hpp>

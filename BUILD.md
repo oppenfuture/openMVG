@@ -166,7 +166,7 @@ Using OpenMVG as a third party library dependency in CMake
 -------------------------------------------------------------
 
 OpenMVG can be used as a third party library once it has been installed.
-Because it can use its own Ceres version, it's better to install it locally and not in system files.
+It's better to install it locally and not in system files.
 So please consider using the CMAKE_INSTALL_PREFIX CMake variable to specify a local installation directory.
 
 Here is the syntax to add the variable to the cmake command (use absolute path):

@@ -80,16 +80,6 @@ endif (NOT TIFF_FOUND)
 # Add svg library
 add_subdirectory(vectorGraphics)
 
-# Add ceres-solver (A Nonlinear Least Squares Minimizer)
-if (DEFINED OpenMVG_USE_INTERNAL_CERES)
-  set(CXSPARSE_INCLUDE_INSTALL_DIR ${CMAKE_INSTALL_PREFIX}/include/openMVG/third_party/cxsparse)
-  add_subdirectory(cxsparse)
-  set(CERES_INCLUDE_INSTALL_DIR ${CMAKE_INSTALL_PREFIX}/include/openMVG/third_party/ceres)
-  add_subdirectory(ceres-solver)
-  set_property(TARGET cxsparse PROPERTY FOLDER OpenMVG/3rdParty/ceres)
-  set_property(TARGET ceres PROPERTY FOLDER OpenMVG/3rdParty/ceres)
-endif()
-
 # Add an Approximate Nearest Neighbor library
 if (DEFINED OpenMVG_USE_INTERNAL_FLANN)
   set(FLANN_INCLUDE_INSTALL_DIR ${CMAKE_INSTALL_PREFIX}/include/openMVG/third_party/flann/src/cpp)
@@ -107,11 +97,6 @@ add_subdirectory(fast)
 ##
 # Install Header only libraries if necessary
 ##
-if (DEFINED OpenMVG_USE_INTERNAL_EIGEN)
-  #Configure Eigen install
-  set(EIGEN_INCLUDE_INSTALL_DIR ${CMAKE_INSTALL_PREFIX}/include/openMVG/third_party/eigen)
-  add_subdirectory(eigen)
-endif()
 
 list(APPEND directories cmdLine histogram htmlDoc progress vectorGraphics)
 foreach(inDirectory ${directories})

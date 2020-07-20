@@ -28,11 +28,7 @@ target_link_libraries(
   PRIVATE
     openMVG_numeric
     ${LEMON_LIBRARY}
-    ${CERES_LIBRARIES})
-target_include_directories(
-  openMVG_multiview
-  PRIVATE
-  ${CERES_INCLUDE_DIRS})
+    ceres-solver::ceres-solver)
 set_target_properties(openMVG_multiview PROPERTIES SOVERSION ${OPENMVG_VERSION_MAJOR} VERSION "${OPENMVG_VERSION_MAJOR}.${OPENMVG_VERSION_MINOR}")
 
 add_library(openMVG_multiview_test_data ${MULTIVIEWTESTDATA})
