@@ -5,5 +5,6 @@ target_link_libraries(openMVG_sample_cameras_undistoBrown
   openMVG_image
   openMVG_multiview
   stlplus
-  ceres-solver::ceres-solver)
+  ceres-solver::ceres-solver
+  cxsparse)
 set_property(TARGET openMVG_sample_cameras_undistoBrown PROPERTY FOLDER OpenMVG/Samples)

@@ -1,5 +1,5 @@
 [requires]
-eigen/3.2.10@oppen/testing
+eigen/3.3.7
 ceres-solver/1.14.0@oppen/testing
 
 [generators]

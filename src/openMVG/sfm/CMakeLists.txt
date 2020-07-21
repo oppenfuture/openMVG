@@ -25,6 +25,7 @@ target_link_libraries(
     openMVG_multiview
     stlplus
     ceres-solver::ceres-solver
+    cxsparse
     openMVG_lInftyComputerVision
     openMVG_system
     openMVG_matching
